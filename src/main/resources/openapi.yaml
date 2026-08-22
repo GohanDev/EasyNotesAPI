@@ -1,0 +1,170 @@
+openapi: 3.0.3
+
+info:
+  title: EasyNotes API
+  version: 1.0.0
+  description: API REST da aplicação EasyNotes.
+
+servers:
+  - url: http://localhost:8080
+
+paths:
+
+  /auth/register:
+    post:
+      summary: Registar utilizador
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+                - password
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '201':
+          description: Utilizador criado com sucesso
+        '400':
+          description: Dados inválidos
+        '409':
+          description: Email já existente
+
+  /auth/login:
+    post:
+      summary: Iniciar sessão
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login efetuado com sucesso
+        '401':
+          description: Email ou password inválidos
+
+  /me:
+    get:
+      summary: Obter utilizador autenticado
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Utilizador autenticado
+        '401':
+          description: Não autenticado
+
+  /notes:
+    get:
+      summary: Listar notas do utilizador autenticado
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de notas
+        '401':
+          description: Não autenticado
+
+    post:
+      summary: Criar nota
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - content
+              properties:
+                title:
+                  type: string
+                content:
+                  type: string
+      responses:
+        '201':
+          description: Nota criada
+        '400':
+          description: Dados inválidos
+        '401':
+          description: Não autenticado
+
+  /notes/{id}:
+    put:
+      summary: Editar nota
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - content
+              properties:
+                title:
+                  type: string
+                content:
+                  type: string
+      responses:
+        '200':
+          description: Nota atualizada
+        '400':
+          description: Dados inválidos
+        '401':
+          description: Não autenticado
+        '404':
+          description: Nota não encontrada
+
+    delete:
+      summary: Apagar nota
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Nota apagada
+        '401':
+          description: Não autenticado
+        '404':
+          description: Nota não encontrada
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

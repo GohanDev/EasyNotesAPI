@@ -32,6 +32,7 @@ dependencies {
 
     implementation("at.favre.lib:bcrypt:0.10.2")
 
+    implementation("io.ktor:ktor-server-swagger:3.5.0")
 
     testImplementation(kotlin("test"))
     testImplementation(ktorLibs.server.testHost)
