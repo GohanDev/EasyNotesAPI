@@ -15,6 +15,11 @@ import pt.ipt.easynotes.models.RegisterRequest
 import pt.ipt.easynotes.models.UserResponse
 import org.jetbrains.exposed.v1.core.eq
 import pt.ipt.easynotes.models.LoginRequest
+import pt.ipt.easynotes.models.LoginResponse
+import io.ktor.server.auth.authenticate
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.principal
+import io.ktor.server.routing.get
 
 fun Application.configureAuthRoutes() {
 
@@ -115,14 +120,49 @@ fun Application.configureAuthRoutes() {
                 return@post
             }
 
+            val userId = user[UsersTable.id]
+
+            val token = generateToken(userId)
+
             call.respond(
                 HttpStatusCode.OK,
-                UserResponse(
-                    id = user[UsersTable.id],
-                    name = user[UsersTable.name],
-                    email = user[UsersTable.email]
+                LoginResponse(
+                    token = token,
+                    user = UserResponse(
+                        id = userId,
+                        name = user[UsersTable.name],
+                        email = user[UsersTable.email]
+                    )
                 )
             )
+        }
+
+        authenticate("auth-jwt") {
+
+            get("/me") {
+
+                val principal = call.principal<JWTPrincipal>()
+
+                val userId = principal
+                    ?.payload
+                    ?.getClaim("userId")
+                    ?.asInt()
+
+                if (userId == null) {
+                    call.respond(
+                        HttpStatusCode.Unauthorized,
+                        mapOf("error" to "Utilizador não autenticado.")
+                    )
+                    return@get
+                }
+
+                call.respond(
+                    HttpStatusCode.OK,
+                    mapOf(
+                        "userId" to userId
+                    )
+                )
+            }
         }
     }
 }

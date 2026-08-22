@@ -8,6 +8,8 @@ fun Application.module() {
     DatabaseFactory.init()
 
     configureSerialization()
+    configureAuthentication()
     configureRouting()
     configureAuthRoutes()
+
 }
