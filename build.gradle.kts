@@ -23,6 +23,12 @@ dependencies {
     implementation(ktorLibs.server.netty)
     implementation(libs.logback.classic)
 
+    implementation("org.jetbrains.exposed:exposed-core:1.4.0")
+    implementation("org.jetbrains.exposed:exposed-jdbc:1.4.0")
+    implementation("com.h2database:h2:2.3.232")
+
+    implementation("at.favre.lib:bcrypt:0.10.2")
+
     testImplementation(kotlin("test"))
     testImplementation(ktorLibs.server.testHost)
 }
