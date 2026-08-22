@@ -11,5 +11,5 @@ fun Application.module() {
     configureAuthentication()
     configureRouting()
     configureAuthRoutes()
-
+    configureNotesRoutes()
 }
