@@ -156,10 +156,29 @@ fun Application.configureAuthRoutes() {
                     return@get
                 }
 
+                val user = transaction {
+                    UsersTable
+                        .selectAll()
+                        .where {
+                            UsersTable.id eq userId
+                        }
+                        .singleOrNull()
+                }
+
+                if (user == null) {
+                    call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "Utilizador não encontrado.")
+                    )
+                    return@get
+                }
+
                 call.respond(
                     HttpStatusCode.OK,
-                    mapOf(
-                        "userId" to userId
+                    UserResponse(
+                        id = user[UsersTable.id],
+                        name = user[UsersTable.name],
+                        email = user[UsersTable.email]
                     )
                 )
             }

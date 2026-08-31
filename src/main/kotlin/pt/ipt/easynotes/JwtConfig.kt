@@ -3,14 +3,21 @@ package pt.ipt.easynotes
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import io.ktor.server.application.Application
+import io.ktor.server.application.install
 import io.ktor.server.auth.Authentication
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.jwt.jwt
-import io.ktor.server.application.install
 import java.util.Date
-private const val JWT_SECRET = "easynotes-secret-key"
+
 private const val JWT_ISSUER = "easynotes-api"
 private const val JWT_AUDIENCE = "easynotes-users"
+
+/*
+ * Obtém o segredo JWT através de uma variável de ambiente.
+ */
+private val jwtSecret: String =
+    System.getenv("JWT_SECRET")
+        ?: "easynotes-local-development-secret"
 
 fun Application.configureAuthentication() {
 
@@ -23,7 +30,7 @@ fun Application.configureAuthentication() {
             verifier(
                 JWT
                     .require(
-                        Algorithm.HMAC256(JWT_SECRET)
+                        Algorithm.HMAC256(jwtSecret)
                     )
                     .withAudience(JWT_AUDIENCE)
                     .withIssuer(JWT_ISSUER)
@@ -33,7 +40,9 @@ fun Application.configureAuthentication() {
             validate { credential ->
 
                 if (
-                    credential.payload.audience.contains(JWT_AUDIENCE)
+                    credential.payload.audience.contains(
+                        JWT_AUDIENCE
+                    )
                 ) {
                     JWTPrincipal(
                         credential.payload
@@ -46,16 +55,26 @@ fun Application.configureAuthentication() {
     }
 }
 
-fun generateToken(userId: Int): String {
+fun generateToken(
+    userId: Int
+): String {
 
     return JWT.create()
         .withAudience(JWT_AUDIENCE)
         .withIssuer(JWT_ISSUER)
-        .withClaim("userId", userId)
+        .withClaim(
+            "userId",
+            userId
+        )
         .withExpiresAt(
-            Date(System.currentTimeMillis() + 3_600_000) //1h em ms
+            Date(
+                System.currentTimeMillis()
+                        + 3_600_000
+            )
         )
         .sign(
-            Algorithm.HMAC256(JWT_SECRET)
+            Algorithm.HMAC256(
+                jwtSecret
+            )
         )
 }
