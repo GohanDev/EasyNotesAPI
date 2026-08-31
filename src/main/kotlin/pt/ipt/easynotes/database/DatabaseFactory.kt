@@ -3,12 +3,14 @@ package pt.ipt.easynotes.database
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import java.net.URI
 
 object DatabaseFactory {
 
     fun init() {
 
-        val databaseUrl = System.getenv("DATABASE_URL")
+        val databaseUrl =
+            System.getenv("DATABASE_URL")
 
         if (databaseUrl.isNullOrBlank()) {
 
@@ -20,16 +22,27 @@ object DatabaseFactory {
 
         } else {
 
-            // Produção no Deployzy com PostgreSQL
+            // Produção com PostgreSQL
+            val uri = URI(databaseUrl)
+
+            val userInfo =
+                uri.userInfo.split(":", limit = 2)
+
+            val username = userInfo[0]
+            val password = userInfo[1]
+
             val jdbcUrl =
-                databaseUrl.replace(
-                    "postgresql://",
-                    "jdbc:postgresql://"
-                )
+                "jdbc:postgresql://" +
+                        uri.host +
+                        ":" +
+                        uri.port +
+                        uri.path
 
             Database.connect(
                 url = jdbcUrl,
-                driver = "org.postgresql.Driver"
+                driver = "org.postgresql.Driver",
+                user = username,
+                password = password
             )
         }
 
