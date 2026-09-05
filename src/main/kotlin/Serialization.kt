@@ -1,11 +1,12 @@
 package pt.ipt.easynotes
 
-import io.ktor.server.application.*
 import io.ktor.serialization.kotlinx.json.*
+import io.ktor.server.application.*
 import io.ktor.server.plugins.contentnegotiation.*
-import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 
+// Configura a API para receber e devolver dados em formato JSON.
 fun Application.configureSerialization() {
+
     install(ContentNegotiation) {
         json()
     }

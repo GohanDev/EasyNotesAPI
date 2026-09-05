@@ -3,36 +3,43 @@ package pt.ipt.easynotes
 import at.favre.lib.crypto.bcrypt.BCrypt
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
+import io.ktor.server.auth.authenticate
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
+import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
+import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import pt.ipt.easynotes.database.UsersTable
-import pt.ipt.easynotes.models.RegisterRequest
-import pt.ipt.easynotes.models.UserResponse
-import org.jetbrains.exposed.v1.core.eq
 import pt.ipt.easynotes.models.LoginRequest
 import pt.ipt.easynotes.models.LoginResponse
-import io.ktor.server.auth.authenticate
-import io.ktor.server.auth.jwt.JWTPrincipal
-import io.ktor.server.auth.principal
-import io.ktor.server.routing.get
+import pt.ipt.easynotes.models.RegisterRequest
+import pt.ipt.easynotes.models.UserResponse
 
 fun Application.configureAuthRoutes() {
 
     routing {
 
+        // Registo de um novo utilizador.
         post("/auth/register") {
 
             val request = call.receive<RegisterRequest>()
 
+            // Remove espaços desnecessários do nome e do email.
+            val name = request.name.trim()
+            val email = request.email.trim().lowercase()
+            val password = request.password
+
+            // Todos os campos são obrigatórios.
             if (
-                request.name.isBlank() ||
-                request.email.isBlank() ||
-                request.password.isBlank()
+                name.isBlank() ||
+                email.isBlank() ||
+                password.isBlank()
             ) {
                 call.respond(
                     HttpStatusCode.BadRequest,
@@ -41,11 +48,34 @@ fun Application.configureAuthRoutes() {
                 return@post
             }
 
+            // Validação simples do formato do email.
+            val emailRegex = Regex(
+                "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$"
+            )
+
+            if (!emailRegex.matches(email)) {
+                call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "O email introduzido não é válido.")
+                )
+                return@post
+            }
+
+            // A password deve ter pelo menos 6 caracteres.
+            if (password.length < 6) {
+                call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "A password deve ter pelo menos 6 caracteres.")
+                )
+                return@post
+            }
+
+            // Verifica se já existe uma conta com o mesmo email.
             val existingUser = transaction {
                 UsersTable
                     .selectAll()
                     .where {
-                        UsersTable.email eq request.email
+                        UsersTable.email eq email
                     }
                     .singleOrNull()
             }
@@ -58,16 +88,19 @@ fun Application.configureAuthRoutes() {
                 return@post
             }
 
+            // A password nunca é guardada diretamente.
+            // É criado um hash BCrypt que será guardado na base de dados.
             val passwordHash = BCrypt.withDefaults()
                 .hashToString(
                     12,
-                    request.password.toCharArray()
+                    password.toCharArray()
                 )
 
+            // Guarda o novo utilizador na base de dados.
             val userId = transaction {
                 UsersTable.insert {
-                    it[name] = request.name
-                    it[email] = request.email
+                    it[UsersTable.name] = name
+                    it[UsersTable.email] = email
                     it[UsersTable.passwordHash] = passwordHash
                 } get UsersTable.id
             }
@@ -76,21 +109,35 @@ fun Application.configureAuthRoutes() {
                 HttpStatusCode.Created,
                 UserResponse(
                     id = userId,
-                    name = request.name,
-                    email = request.email
+                    name = name,
+                    email = email
                 )
             )
         }
 
+        // Autenticação de um utilizador existente.
         post("/auth/login") {
 
             val request = call.receive<LoginRequest>()
 
+            val email = request.email.trim().lowercase()
+            val password = request.password
+
+            // Impede pedidos de login com campos vazios.
+            if (email.isBlank() || password.isBlank()) {
+                call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "Email e password são obrigatórios.")
+                )
+                return@post
+            }
+
+            // Procura o utilizador através do email.
             val user = transaction {
                 UsersTable
                     .selectAll()
                     .where {
-                        UsersTable.email eq request.email
+                        UsersTable.email eq email
                     }
                     .singleOrNull()
             }
@@ -105,9 +152,10 @@ fun Application.configureAuthRoutes() {
 
             val passwordHash = user[UsersTable.passwordHash]
 
+            // Compara a password introduzida com o hash guardado.
             val passwordValid = BCrypt.verifyer()
                 .verify(
-                    request.password.toCharArray(),
+                    password.toCharArray(),
                     passwordHash
                 )
                 .verified
@@ -122,6 +170,7 @@ fun Application.configureAuthRoutes() {
 
             val userId = user[UsersTable.id]
 
+            // Após autenticação válida é criado um token JWT.
             val token = generateToken(userId)
 
             call.respond(
@@ -137,12 +186,15 @@ fun Application.configureAuthRoutes() {
             )
         }
 
+        // Rotas dentro deste bloco exigem um JWT válido.
         authenticate("auth-jwt") {
 
+            // Devolve os dados do utilizador autenticado.
             get("/me") {
 
                 val principal = call.principal<JWTPrincipal>()
 
+                // Obtém o ID do utilizador que foi colocado no token JWT.
                 val userId = principal
                     ?.payload
                     ?.getClaim("userId")

@@ -7,6 +7,7 @@ import java.net.URI
 
 object DatabaseFactory {
 
+    // Configura a base de dados utilizada pela API.
     fun init() {
 
         val databaseUrl =
@@ -14,7 +15,7 @@ object DatabaseFactory {
 
         if (databaseUrl.isNullOrBlank()) {
 
-            // Desenvolvimento local com H2
+            // Sem DATABASE_URL é utilizada uma base de dados H2 local.
             Database.connect(
                 url = "jdbc:h2:file:./data/easynotes",
                 driver = "org.h2.Driver"
@@ -22,7 +23,7 @@ object DatabaseFactory {
 
         } else {
 
-            // Produção com PostgreSQL
+            // Em produção a ligação PostgreSQL é obtida da variável DATABASE_URL.
             val uri = URI(databaseUrl)
 
             val userInfo =
@@ -46,8 +47,8 @@ object DatabaseFactory {
             )
         }
 
+        // Cria as tabelas caso ainda não existam.
         transaction {
-
             SchemaUtils.create(
                 UsersTable,
                 NotesTable

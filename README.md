@@ -1,34 +1,65 @@
-# api
+# EasyNotes API
 
-This project was created using the [Ktor Project Generator](https://start.ktor.io).
+API REST desenvolvida para a aplicação Android EasyNotes.
 
-Here are some useful links to get you started:
- * [Ktor Documentation](https://ktor.io/docs/home.html)
- * [Ktor GitHub page](https://github.com/ktorio/ktor)
- * [Ktor Slack chat](https://app.slack.com/client/T09229ZC6/C0A974TJ9). [Request an invite](https://surveys.jetbrains.com/s3/kotlin-slack-sign-up).
+## Tecnologias utilizadas
 
+- Kotlin
+- Ktor Server
+- JWT
+- BCrypt
+- Exposed
+- PostgreSQL
+- H2
+- Swagger / OpenAPI
+- Kotlinx Serialization
 
-## Features
-Here's a list of features included in this project:
+## Base de dados
 
-| Name | Description |
-|------|-------------|
-| [Content Negotiation](https://start.ktor.io/p/io.ktor/server-content-negotiation) | Provides automatic content conversion according to Content-Type and Accept headers |
-| [kotlinx.serialization](https://start.ktor.io/p/io.ktor/server-kotlinx-serialization) | Handles JSON serialization using kotlinx.serialization library |
+Durante o desenvolvimento local é utilizada uma base de dados H2.
 
+Em produção é utilizada uma base de dados PostgreSQL.
 
-## Building & Running
-To build or run the project, use one of the following tasks:
+A configuração da base de dados de produção é obtida através da variável de ambiente:
 
+`DATABASE_URL`
 
-| Task | Description |
-|------|-------------|
-| `./gradlew test`    | Run the tests     |
-| `./gradlew build`   | Build the project |
-| `./gradlew run`     | Run the server    |
+## Autenticação
 
-If the server starts successfully, you'll see the following output:
-```
-2024-12-04 14:32:45.584 [main] INFO  Application - Application started in 0.303 seconds.
-2024-12-04 14:32:45.682 [main] INFO  Application - Responding at http://0.0.0.0:8080
-```
+A API utiliza autenticação através de JWT.
+
+O segredo utilizado para assinar os tokens é obtido através da variável de ambiente:
+
+`JWT_SECRET`
+
+As passwords dos utilizadores são guardadas através de hash BCrypt.
+
+## Endpoints principais
+
+### Autenticação
+
+- `POST /auth/register` - registar utilizador
+- `POST /auth/login` - iniciar sessão
+- `GET /me` - obter utilizador autenticado
+
+### Notas
+
+- `GET /notes` - listar notas
+- `POST /notes` - criar nota
+- `PUT /notes/{id}` - editar nota
+- `DELETE /notes/{id}` - apagar nota
+
+As operações sobre notas requerem autenticação JWT e cada utilizador apenas pode aceder às suas próprias notas.
+
+## Outros endpoints
+
+- `GET /` - identificação da API
+- `GET /health` - estado da API
+- `/swagger` - documentação Swagger
+
+## Executar localmente
+
+No Windows:
+
+```powershell
+.\gradlew.bat run
